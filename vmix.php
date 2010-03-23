@@ -39,9 +39,8 @@ class Vmix {
   */
   public function __call($method, $args)
   {
-  
     $this->response_type = (isset($args[0]['output'])) ? strtolower($args[0]['output']) : $this->response_type;
-    $query = $this->get_query($args[0]);
+    $query = (isset($args[0])) ? $this->get_query($args[0]) : '';
     $url = $this->partner_id . ':' . $this->pass . '@' . $this->base_url . $this->find_page($method) . '.php?action=' . $method . $query;
 		
 		//Make it happen
@@ -64,11 +63,11 @@ class Vmix {
 		    $response = unserialize_xml($response);
 		  }
 		  else {
-		    $response = json_decode($response)
+		    $response = json_decode($response);
 		  }
 		}
 		curl_close($ch);
-		return $response;
+		return (array) $response;
   }
   
   /**
@@ -99,7 +98,7 @@ class Vmix {
   protected function find_page($action)
   {
     foreach ($this->pages as $page) {
-      if (stristr($this->action, $page)) {
+      if (stristr($action, $page)) {
         return $page;
       }
     }
