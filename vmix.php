@@ -43,31 +43,31 @@ class Vmix {
     $query = (isset($args[0])) ? $this->get_query($args[0]) : '';
     $url = $this->partner_id . ':' . $this->pass . '@' . $this->base_url . $this->find_page($method) . '.php?action=' . $method . $query;
 		
-		//Make it happen
-		$ch = curl_init();
+    //Make it happen
+    $ch = curl_init();
 		curl_setopt ($ch, CURLOPT_URL, 'http://' . $url);
-		curl_setopt ($ch, CURLOPT_RETURNTRANSFER, TRUE);
-		curl_setopt ($ch, CURLOPT_CONNECTTIMEOUT, TRUE);
-		curl_setopt ($ch, CURLOPT_HEADER, FALSE);
-		curl_setopt ($ch, CURLOPT_TIMEOUT, FALSE);
-		curl_setopt ($ch, CURLOPT_SSL_VERIFYPEER, FALSE);
+    curl_setopt ($ch, CURLOPT_RETURNTRANSFER, TRUE);
+    curl_setopt ($ch, CURLOPT_CONNECTTIMEOUT, TRUE);
+    curl_setopt ($ch, CURLOPT_HEADER, FALSE);
+    curl_setopt ($ch, CURLOPT_TIMEOUT, FALSE);
+    curl_setopt ($ch, CURLOPT_SSL_VERIFYPEER, FALSE);
     curl_setopt($ch, CURLOPT_HTTPGET, TRUE);
 		
-		//Get the response
-		$response = curl_exec($ch);
-		if (!$response) {
-			$response = curl_error($ch);
-		}
-		else {
-		  if ($this->response_type == 'xml') {
-		    $response = unserialize_xml($response);
-		  }
-		  else {
-		    $response = json_decode($response);
-		  }
-		}
-		curl_close($ch);
-		return (array) $response;
+    //Get the response
+    $response = curl_exec($ch);
+    if (!$response) {
+      $response = curl_error($ch);
+    }
+    else {
+      if ($this->response_type == 'xml') {
+        $response = unserialize_xml($response);
+      }
+      else {
+        $response = json_decode($response);
+      }
+    }
+    curl_close($ch);
+    return (array) $response;
   }
   
   /**
@@ -112,7 +112,7 @@ class Vmix {
   * @param  bool    $load       Whether or not to call SimpleXML
   * @return string
   */
-	protected function unserialize_xml($string, $load=true)
+  protected function unserialize_xml($string, $load=true)
   {
     $data = ($load) ? simplexml_load_string($string) : $string;
     if ($data instanceof SimpleXMLElement) $data = (array) $data;
