@@ -105,8 +105,7 @@ class Vmix {
   }
   
   /**
-  * Turns the XML returned from VMIX API into an array.
-  * This method uses PHP's SimpleXML
+  * Turns the data returned from VMIX API into an array.
   *
   * @param  string  $string     The string to evaluate
   * @return string
