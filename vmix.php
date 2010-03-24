@@ -109,12 +109,10 @@ class Vmix {
   * This method uses PHP's SimpleXML
   *
   * @param  string  $string     The string to evaluate
-  * @param  bool    $load       Whether or not to call SimpleXML
   * @return string
   */
-  protected function unserialize_data($string)
+  protected function unserialize_data($data)
   {
-    $data = $string;
     if ($data instanceof SimpleXMLElement || $data instanceof stdClass) $data = (array) $data;
     if (is_array($data)) {
       foreach ($data as &$item) {
