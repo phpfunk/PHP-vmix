@@ -60,14 +60,14 @@ class Vmix {
     }
     else {
       if ($this->response_type == 'xml') {
-        $response = unserialize_xml($response);
+        $response = $this->unserialize_data(simplexml_load_string($response));
       }
       else {
-        $response = json_decode($response);
+        $response = $this->unserialize_data(json_decode($response));
       }
     }
     curl_close($ch);
-    return (array) $response;
+    return $response;
   }
   
   /**
@@ -112,13 +112,13 @@ class Vmix {
   * @param  bool    $load       Whether or not to call SimpleXML
   * @return string
   */
-  protected function unserialize_xml($string, $load=true)
+  protected function unserialize_data($string)
   {
-    $data = ($load) ? simplexml_load_string($string) : $string;
-    if ($data instanceof SimpleXMLElement) $data = (array) $data;
+    $data = $string;
+    if ($data instanceof SimpleXMLElement || $data instanceof stdClass) $data = (array) $data;
     if (is_array($data)) {
       foreach ($data as &$item) {
-        $item = $this->unserialize_xml($item, false);
+        $item = $this->unserialize_data($item);
       }
     }
     return $data;
