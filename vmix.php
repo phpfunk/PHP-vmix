@@ -13,6 +13,7 @@ class Vmix {
   
   protected $action   =   NULL;
   protected $base_url =   'api.vmixcore.com/apis/';
+  protected $ch       =   NULL;
   protected $pages    =   array('captcha','collection','comments','crypt','genre','media','ratings','ReportedPost','tags');
 
   /**
@@ -27,6 +28,13 @@ class Vmix {
     $this->partner_id     = (! empty($partner_id)) ? $partner_id : $this->partner_id;
     $this->pass           = (! empty($pass)) ? $pass : $this->pass;
     $this->response_type  = strtolower($response_type);
+    $this->ch = curl_init();
+    curl_setopt($this->ch, CURLOPT_RETURNTRANSFER, TRUE);
+    curl_setopt($this->ch, CURLOPT_CONNECTTIMEOUT, TRUE);
+    curl_setopt($this->ch, CURLOPT_HEADER, FALSE);
+    curl_setopt($this->ch, CURLOPT_TIMEOUT, FALSE);
+    curl_setopt($this->ch, CURLOPT_SSL_VERIFYPEER, FALSE);
+    curl_setopt($this->ch, CURLOPT_HTTPGET, TRUE);
   }
   
   /**
@@ -44,30 +52,125 @@ class Vmix {
     $url = $this->partner_id . ':' . $this->pass . '@' . $this->base_url . $this->find_page($method) . '.php?action=' . $method . $query;
 		
     //Make it happen
-    $ch = curl_init();
-		curl_setopt ($ch, CURLOPT_URL, 'http://' . $url);
-    curl_setopt ($ch, CURLOPT_RETURNTRANSFER, TRUE);
-    curl_setopt ($ch, CURLOPT_CONNECTTIMEOUT, TRUE);
-    curl_setopt ($ch, CURLOPT_HEADER, FALSE);
-    curl_setopt ($ch, CURLOPT_TIMEOUT, FALSE);
-    curl_setopt ($ch, CURLOPT_SSL_VERIFYPEER, FALSE);
-    curl_setopt($ch, CURLOPT_HTTPGET, TRUE);
+		curl_setopt ($this->ch, CURLOPT_URL, 'http://' . $url);
 		
     //Get the response
-    $response = curl_exec($ch);
+    $response = curl_exec($this->ch);
     if (!$response) {
-      $response = curl_error($ch);
+      $response = curl_error($this->ch);
     }
     else {
       if ($this->response_type == 'xml') {
-        $response = $this->unserialize_data(simplexml_load_string($response));
+        $response = simplexml_load_string($response);
       }
       else {
-        $response = $this->unserialize_data(json_decode($response));
+        $response = json_decode($response);
       }
     }
-    curl_close($ch);
-    return $response;
+    return $this->unserialize_data($response);
+  }
+  
+  public function __destruct()
+  {
+    curl_close($this->ch);
+  }
+  
+  /**
+  * Creates the embed code for any movie.
+  *
+  * @param  array  $arg   An array of all your settings.
+  *
+  * The $arg param is an array with all the settings you want to set for your embed code.
+  * You can set any property in the flash and define and flashVars, flash params, etc
+  * by passing them into the method. A simple breakdown is the key of the array should be
+  * variable you want to set and the value, it's value to set.
+  *
+  * The object and embed params should all be set to the key of 'params' and this should be an
+  * array full of the keys and values you want to set for each object and embed parameter. You
+  * only need to define it once and the method will create the object and embed params. Some
+  * defaults are set so that you don't have to pass the same params everytime for things like
+  * allowScriptAccess, allowFullScreen, etc. They are described below.
+  *
+  * Parameters and Defaults:
+  * Key                       | Type    | Default
+  * --------------------------------------------------------
+  * object_id                 | String  | vmix_player
+  * vmix_player               | String  | http://cdn-akm.vmixcore.com/core-flash/UnifiedVideoPlayer/UnifiedVideoPlayer.swf
+  * callback                  | String  | N/A
+  * player_id                 | String  | N/A
+  * token                     | String  | N/A
+  * services_url              | String  | http://cdn-akm.vmixcore.com/core-flash/UnifiedVideoPlayer/services.xml
+  * params                    | Array   | N/A
+  * params.allowScreenAccess  | String  | always
+  * params.allowFullScreen    | String  | true
+  * params.wmode              | String  | transparent
+  * params.flashVars          | String  | player_id=$player_id&services_url=$services_url&env=&token=$token . $callback
+  * params.*                  | String  | N/A
+  *
+  * @return string
+  */
+  public function get_embed($args)
+  {
+  
+    //If not token or player ID, return false
+    if (empty($args['token']) || empty($args['player_id']) || ! isset($args['token']) || ! isset($args['player_id'])) { return false; }
+
+    //Set some defaults
+    $object_id = (!isset($args['object_id']) || empty($args['object_id'])) ? 'vmix_player' : $args['object_id'];
+    $vmix_player = (!isset($args['vmix_player']) || empty($args['vmix_player'])) ? 'http://cdn-akm.vmixcore.com/core-flash/UnifiedVideoPlayer/UnifiedVideoPlayer.swf' : $args['vmix_player'];
+    $callback = (! empty($callback)) ? '&event_handler=' . $callback : '';
+    $token = $args['token'];
+    $player_id = $args['player_id'];
+    $services_url = (!isset($args['services_url']) || empty($args['services_url'])) ? 'http://cdn-akm.vmixcore.com/core-flash/UnifiedVideoPlayer/services.xml' : $args['services_url'];
+    
+    //Object Parameters
+    $params             = array();
+    $params['object']   = NULL;
+    $params['embed']    = array();
+    
+    $params['default']  = array(
+      'allowScriptAccess' =>  'always',
+      'allowFullScreen'   =>  'true',
+      'wmode'             =>  'transparent'
+    );
+
+    //Loop thru params and set everything straight
+    if (isset($args['params']) && @count($args['params']) > 0) {
+      foreach ($args['params'] as $name => $value) {
+        if (strtolower($name) == 'flashvars') {
+          $params['default']['flashVars'] = $value;
+        }
+        else {
+          $params['object'] .= '<param name="' $name .'" value="' . $value .'" />';
+          array_push($params['embed'], $name . '=' . $value);
+          $params['default'][$name] = true;
+        }
+      }
+      
+      foreach ($params['default'] as $name => $value) {
+        if ($value !== true) {
+          $params['object'] .= '<param name="' $name .'" value="' . $value .'" />';
+          array_push($params['embed'], $name . '=' . $value);
+        }
+      }
+    }
+    
+    //Figure if flashVars are coming from user
+    if (! isset($params['default']['flashVars'])) {
+      $params['default']['flashVars'] = 'player_id=' . $player_id . '&services_url=' . $services_url . '&env=&token=' . $token . $callback;
+    }
+    
+    //Create embed code
+    $embed =  '<object id="' . $object_id . '" classid="clsid:D27CDB6E-AE6D-11cf-96B8-444553540000" width="' . $args['width'] . '" height="' . $args['height'] . '"';
+    $embed .= ' codebase="http://fpdownload.macromedia.com/get/flashplayer/current/swflash.cab">';
+    $embed .= '<param name="movie" value="' . $vmix_player . '?player_id=' . $player_id . '" />';
+    $embed .= $params['object'];
+    $embed .= '<param name="flashVars" value="' . $params['default']['flashVars'] . '" />';
+    $embed .= '<embed name="' . $object_id . '" src="' . $vmix_player . '?player_id=' . $player_id .'"';
+    $embed .= ' width="' . $args['width'] . '" height="' . $args['height'] . '" ' . implode(' ', $params['embed']) . ' type="application/x-shockwave-flash"';
+    $embed .= ' swliveconnect="true" pluginspage="http://www.adobe.com/go/getflashplayer" flashVars="' . $params['default']['flashVars'] . '"></embed></object>';
+    
+    return $embed;
   }
   
   /**
