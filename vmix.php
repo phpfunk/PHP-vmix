@@ -52,7 +52,7 @@ class Vmix {
     $url = $this->partner_id . ':' . $this->pass . '@' . $this->base_url . $this->find_page($method) . '.php?action=' . $method . $query;
 		
     //Make it happen
-		curl_setopt ($this->ch, CURLOPT_URL, 'http://' . $url);
+    curl_setopt ($this->ch, CURLOPT_URL, 'http://' . $url);
 		
     //Get the response
     $response = curl_exec($this->ch);
@@ -209,10 +209,10 @@ class Vmix {
     if (@count($arr) > 0 && is_array($arr)) {
       foreach ($arr as $k => $v) {
         $k = ($k == 'response_type') ? 'output' : $k;
-				array_push($query, "$k=$v");
-			}
+        array_push($query, "$k=$v");
+      }
       return '&' . implode('&', $query);
-		}
+    }
   }
   
   /**
