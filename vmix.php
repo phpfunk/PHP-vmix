@@ -70,12 +70,36 @@ class Vmix {
     return $this->unserialize_data($response);
   }
   
+  /**
+  * Destroys the cURL connection
+  *
+  */
   public function __destruct()
   {
     curl_close($this->ch);
   }
   
   /**
+  * Returns any children collection of the collection_id passed
+  *
+  * @param  integer $id   The collection ID you want the children for
+  * @param  integer $status   The status the collection must be (-1 = deleted, 0 = disabled, 1 = enabled, defaults to 1)
+  * 
+  * @return array
+  */
+  public function getChildren($id, $status=1)
+  {
+    if (! is_numeric($id)) { return false; }
+    return $this->getCollections(array(
+        'collection_id' =>  $id,
+        'get_children'  =>  1,
+        'get_count'     =>  1,
+        'status'        =>  $status
+    ));
+  }
+  
+  /**
+  * NOT PRODUCTION READY OR TESTED
   * Creates the embed code for any movie.
   *
   * @param  array  $arg   An array of all your settings.
@@ -109,7 +133,7 @@ class Vmix {
   *
   * @return string
   */
-  public function get_embed($args)
+  public function getEmbed($args)
   {
   
     //If not token or player ID, return false
@@ -141,7 +165,7 @@ class Vmix {
           $params['default']['flashVars'] = $value;
         }
         else {
-          $params['object'] .= '<param name="' $name .'" value="' . $value .'" />';
+          $params['object'] .= '<param name="' . $name .'" value="' . $value .'" />';
           array_push($params['embed'], $name . '=' . $value);
           $params['default'][$name] = true;
         }
@@ -149,7 +173,7 @@ class Vmix {
       
       foreach ($params['default'] as $name => $value) {
         if ($value !== true) {
-          $params['object'] .= '<param name="' $name .'" value="' . $value .'" />';
+          $params['object'] .= '<param name="' . $name .'" value="' . $value .'" />';
           array_push($params['embed'], $name . '=' . $value);
         }
       }
