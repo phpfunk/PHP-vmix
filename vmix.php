@@ -14,6 +14,7 @@ class Vmix {
   protected $action   =   NULL;
   protected $base_url =   'api.vmixcore.com/apis/';
   protected $ch       =   NULL;
+  protected $curl     =   FALSE;
   protected $pages    =   array('captcha','collection','comments','crypt','genre','media','ratings','ReportedPost','tags');
 
   /**
@@ -28,13 +29,17 @@ class Vmix {
     $this->partner_id     = (! empty($partner_id)) ? $partner_id : $this->partner_id;
     $this->pass           = (! empty($pass)) ? $pass : $this->pass;
     $this->response_type  = strtolower($response_type);
-    $this->ch = curl_init();
-    curl_setopt($this->ch, CURLOPT_RETURNTRANSFER, TRUE);
-    curl_setopt($this->ch, CURLOPT_CONNECTTIMEOUT, TRUE);
-    curl_setopt($this->ch, CURLOPT_HEADER, FALSE);
-    curl_setopt($this->ch, CURLOPT_TIMEOUT, FALSE);
-    curl_setopt($this->ch, CURLOPT_SSL_VERIFYPEER, FALSE);
-    curl_setopt($this->ch, CURLOPT_HTTPGET, TRUE);
+    $this->curl = function_exists('curl_init');
+    
+    if ($this->curl === TRUE) {
+      $this->ch = curl_init();
+      curl_setopt($this->ch, CURLOPT_RETURNTRANSFER, TRUE);
+      curl_setopt($this->ch, CURLOPT_CONNECTTIMEOUT, TRUE);
+      curl_setopt($this->ch, CURLOPT_HEADER, FALSE);
+      curl_setopt($this->ch, CURLOPT_TIMEOUT, FALSE);
+      curl_setopt($this->ch, CURLOPT_SSL_VERIFYPEER, FALSE);
+      curl_setopt($this->ch, CURLOPT_HTTPGET, TRUE);
+    }
   }
   
   /**
@@ -52,21 +57,17 @@ class Vmix {
     $url = $this->partner_id . ':' . $this->pass . '@' . $this->base_url . $this->find_page($method) . '.php?action=' . $method . $query;
 		
     //Make it happen
-    curl_setopt ($this->ch, CURLOPT_URL, 'http://' . $url);
-		
-    //Get the response
-    $response = curl_exec($this->ch);
-    if (!$response) {
-      $response = curl_error($this->ch);
+    if ($this->curl === TRUE) {
+      curl_setopt ($this->ch, CURLOPT_URL, 'http://' . $url);
+      $response = curl_exec($this->ch);
+      $response = (! $response) ? curl_error($this->ch) : $response;
     }
     else {
-      if ($this->response_type == 'xml') {
-        $response = simplexml_load_string($response);
-      }
-      else {
-        $response = json_decode($response);
-      }
+      $response = file_get_contents('http://' . $url);
     }
+		
+    //Format & Return
+    $response = ($this->response_type == 'xml') ? simplexml_load_string($response) : json_decode($response);
     return $this->unserialize_data($response);
   }
   
@@ -76,7 +77,9 @@ class Vmix {
   */
   public function __destruct()
   {
-    curl_close($this->ch);
+    if ($this->curl === TRUE) {
+      curl_close($this->ch);
+    }
   }
   
   /**
